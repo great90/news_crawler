@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<body style="margin:0;padding:0;background:#eef2ff;font-family:'Segoe UI','Microsoft YaHei',Arial,sans-serif;">
+  <div style="max-width:860px;margin:0 auto;padding:28px 20px;">
+    <div style="background:linear-gradient(135deg,#4338ca 0%,#0ea5e9 100%);background-color:#4338ca;border-radius:14px;padding:26px 32px;margin-bottom:22px;">
+      <h1 style="font-size:24px;color:#ffffff;margin:0 0 6px;letter-spacing:1px;">📰 每日情报 {{ day }}</h1>
+      <p style="color:#dbeafe;font-size:13px;margin:0;">🤖 AI · 🎮 游戏 · 🕹️ 游戏引擎 · 🧰 新工具 ｜ 自动采集 · LLM 精选 · 同事件智能聚合</p>
+    </div>
+    {% set accents = {"ai": ("#2563eb", "🤖"), "game": ("#7c3aed", "🎮"), "game_engine": ("#ea580c", "🕹️"), "new_tool": ("#059669", "🧰"), "zhihu": ("#0084ff", "📋"), "weibo": ("#e6162d", "🔥"), "douyin": ("#fe2c55", "🎵")} %}
+    {% for section in sections %}
+    {% set accent, icon = accents.get(section.topic, ("#334155", "📌")) %}
+    <div style="background:#ffffff;border-radius:12px;padding:20px 26px;margin-bottom:18px;box-shadow:0 1px 4px rgba(30,41,59,0.08);">
+      <div style="margin-bottom:14px;">
+        <span style="display:inline-block;background:{{ accent }};color:#ffffff;border-radius:999px;padding:4px 14px;font-size:14px;font-weight:700;">{{ icon }} {{ section.label }}</span>
+        <span style="color:#94a3b8;font-size:13px;margin-left:8px;">{% if section.error %}暂不可用 ⚠{% elif section.items %}{{ section.items|length }} 条{% else %}本日无新增{% endif %}</span>
+      </div>
+      {% if section.error %}
+      <p style="font-size:12px;color:#dc2626;margin:0 0 10px;">拉取失败：{{ section.error }}</p>
+      {% endif %}
+      {% for item in section.items %}
+      <div style="padding:12px 0;{% if not loop.last %}border-bottom:1px solid #f1f5f9;{% endif %}">
+        <div style="margin-bottom:4px;">
+          <span style="display:inline-block;background:{{ accent }}1a;color:{{ accent }};border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;margin-right:8px;">{{ loop.index }}</span>
+          <a href="{{ item.url }}" style="font-size:15px;font-weight:700;color:#1e293b;text-decoration:none;">{{ item.title }}</a>
+        </div>
+        {% if item.points %}
+        <p style="font-size:13.5px;color:#475569;line-height:1.7;margin:4px 0 4px 40px;">{{ item.points }}</p>
+        {% endif %}
+        <div style="margin-left:40px;">
+          <a href="{{ item.url }}" style="font-size:12px;color:{{ accent }};text-decoration:none;font-weight:600;">🔗 原文</a>
+          {% if item.hot %}<span style="font-size:12px;color:#dc2626;margin-left:14px;font-weight:600;">🔥 {{ item.hot }}</span>{% endif %}
+          {% if item.sources %}
+          <span style="font-size:12px;color:#94a3b8;margin-left:14px;">相关报道：
+            {% for s in item.sources %}<a href="{{ s }}" style="color:{{ accent }};text-decoration:none;margin-right:8px;font-weight:600;">[{{ loop.index }}]</a>{% endfor %}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    <p style="color:#94a3b8;font-size:11px;text-align:center;margin:10px 0 0;">生成于 {{ generated_at }} ｜ 采集 {{ stats.raw_total|default(0) }} 条 → 精选 {{ stats.final_total|default(0) }} 条 ｜ 社媒精选 {{ stats.get('social', {}).get('final_total', 0) }} 条 ｜ 搜索 {{ stats.search_calls|default(0) }} 次 · LLM {{ stats.llm_calls|default(0) }} 次</p>
+  </div>
+</body>
+</html>

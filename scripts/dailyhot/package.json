@@ -1,0 +1,8 @@
+{
+  "name": "dailyhot-runner",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "dailyhot-api": "latest"
+  }
+}
