@@ -45,6 +45,9 @@ class Config:
     social_api_base: str = "http://localhost:6688"
     social_platforms: tuple[str, ...] = ("zhihu", "weibo", "douyin")
     social_count: int = 10
+    push_channels: tuple[str, ...] = ()
+    bark_url: str | None = None
+    serverchan_send_key: str | None = None
 
     @property
     def mail_sender(self) -> str:
@@ -83,6 +86,11 @@ def load(profile: str = "full") -> Config:
                 p.strip() for p in (get("SOCIAL_PLATFORMS", "zhihu,weibo,douyin") or "").split(",") if p.strip()
             ),
             social_count=int(get("SOCIAL_COUNT", "10")),
+            push_channels=tuple(
+                p.strip() for p in (get("PUSH_CHANNELS", "") or "").split(",") if p.strip()
+            ),
+            bark_url=get("BARK_URL"),
+            serverchan_send_key=get("SERVERCHAN_SEND_KEY"),
         )
     except ValueError as exc:
         raise ConfigError(f"数值型配置不合法: {exc}") from exc
@@ -98,4 +106,7 @@ def load(profile: str = "full") -> Config:
             raise ConfigError("SOCIAL_API_BASE 须以 http:// 或 https:// 开头")
         if not 1 <= config.social_count <= 50:
             raise ConfigError("SOCIAL_COUNT 取值范围为 1-50")
+    unknown_channels = [c for c in config.push_channels if c not in ("bark", "serverchan")]
+    if unknown_channels:
+        raise ConfigError(f"PUSH_CHANNELS 含未知通道（支持 bark,serverchan）: {unknown_channels}")
     return config

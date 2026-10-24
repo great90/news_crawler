@@ -9,6 +9,7 @@ from datetime import date
 
 from .config import APP_DIR, Config, ConfigError, MissingConfigError, load
 from .mailer import MailError, Mailer
+from .pusher import notify
 from .renderer import render_digest_html
 from .runner import CapExceededError, build_digest, write_archive
 from .search_client import DeepSeekSearchClient, SearchError
@@ -149,8 +150,24 @@ def cmd_run(args: argparse.Namespace) -> int:
         return _fail_with_alarm(config, day, exc, stage="发送")
 
     RunState().mark_success(day)
+    _notify_digest(config, digest)
     print(f"\n✅ 已发送至 {config.mail_to}；存档：{archive_path}")
     return EXIT_OK
+
+
+def _notify_digest(config: Config, digest) -> None:
+    """投递成功后按 PUSH_CHANNELS 推手机摘要；失败仅记日志，不影响主流程。"""
+    if not config.push_channels:
+        return
+    news = sum(len(s.items) for s in digest.sections if s.kind == "news" and not s.error)
+    social = sum(len(s.items) for s in digest.sections if s.kind == "social" and not s.error)
+    degraded = [s.label for s in digest.sections if s.error]
+    body = f"新闻 {news} 条；社媒 {social} 条" + (f"；降级：{'、'.join(degraded)}" if degraded else "")
+    desp = f"**每日情报 {digest.day}**\n\n- 新闻 {news} 条\n- 社媒 {social} 条"
+    if degraded:
+        desp += f"\n\n> 降级：{'、'.join(degraded)}"
+    notify(config.push_channels, config.bark_url, config.serverchan_send_key,
+           title=f"每日情报 {digest.day} 已送达", body=body, desp_md=desp)
 
 
 def _build_mailer(config: Config) -> Mailer:
