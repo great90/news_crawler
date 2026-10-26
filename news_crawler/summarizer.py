@@ -38,12 +38,14 @@ class Summarizer:
         self,
         api_key: str,
         base_url: str = "https://api.deepseek.com",
+        model: str = MODEL,
         timeout: float = 60.0,
         max_retries: int = 3,
         sleep=time.sleep,
     ) -> None:
         self._api_key = api_key
         self._base = base_url.rstrip("/")
+        self._model = model
         self._timeout = timeout
         self._max_retries = max_retries
         self._sleep = sleep
@@ -83,7 +85,7 @@ class Summarizer:
 
     def _chat(self, prompt: str) -> str:
         payload = {
-            "model": MODEL,
+            "model": self._model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},

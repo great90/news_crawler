@@ -116,7 +116,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         return EXIT_OK
 
     search_client = DeepSeekSearchClient(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
-    summarizer = Summarizer(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
+    summarizer = Summarizer(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url,
+                            model=config.llm_model)
     social_client = None
     if config.social_enabled:
         social_client = DailyHotApiClient(

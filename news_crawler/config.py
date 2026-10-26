@@ -32,6 +32,7 @@ class MissingConfigError(ConfigError):
 class Config:
     deepseek_api_key: str
     deepseek_base_url: str = "https://api.deepseek.com"
+    llm_model: str = "deepseek-flash"
     smtp_host: str | None = None
     smtp_port: int = 465
     smtp_user: str | None = None
@@ -71,6 +72,7 @@ def load(profile: str = "full") -> Config:
         config = Config(
             deepseek_api_key=os.environ["DEEPSEEK_API_KEY"].strip(),
             deepseek_base_url=(get("DEEPSEEK_BASE_URL", "https://api.deepseek.com") or "").rstrip("/"),
+            llm_model=(get("LLM_MODEL", "deepseek-flash") or "").strip(),
             smtp_host=get("SMTP_HOST"),
             smtp_port=int(get("SMTP_PORT", "465")),
             smtp_user=get("SMTP_USER"),

@@ -30,11 +30,11 @@ def chat_response(content: str) -> FakeResponse:
     return FakeResponse(200, {"choices": [{"message": {"content": content}}]})
 
 
-def make_summarizer(monkeypatch, responses: list[FakeResponse]):
+def make_summarizer(monkeypatch, responses: list[FakeResponse], model: str = "deepseek-flash"):
     fake = FakeRequests(responses)
     monkeypatch.setattr("news_crawler.summarizer.requests", fake)
     sleeps: list[float] = []
-    summarizer = Summarizer(api_key="sk-test", sleep=sleeps.append)
+    summarizer = Summarizer(api_key="sk-test", model=model, sleep=sleeps.append)
     return summarizer, fake, sleeps
 
 
@@ -48,8 +48,16 @@ def test_parses_fenced_json_and_merges(monkeypatch):
     assert [i.points for i in items] == ["要点一", "要点二"]
     assert items[0].title == "标题一"
     assert fake.calls[0]["url"].endswith("/chat/completions")
-    assert fake.calls[0]["json"]["model"] == "deepseek-flash"
+    assert fake.calls[0]["json"]["model"] == "deepseek-flash"  # 默认模型
     assert summarizer.successful_calls == 1
+
+
+def test_model_param_reaches_payload(monkeypatch):
+    summarizer, fake, _ = make_summarizer(
+        monkeypatch, [chat_response('[{"title": "一", "url": "u1", "points": "p"}]')],
+        model="glm-5.3-flash")
+    summarizer.summarize_topic("AI", ITEMS)
+    assert fake.calls[0]["json"]["model"] == "glm-5.3-flash"  # 模型可切换
 
 
 def test_repairs_once_then_raises_on_unparseable(monkeypatch):

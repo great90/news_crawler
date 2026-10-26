@@ -167,3 +167,36 @@ def test_no_social_client_keeps_legacy_behavior():
     digest, _ = build_digest(DAY, FakeSearch(news), FakeSummarizer(), count=10, call_cap=100, social_client=None)
     assert all(s.kind == "news" for s in digest.sections)  # AC-3：关闭时行为与 REQ-1 一致
     assert digest.stats["social"]["final_total"] == 0
+
+
+def test_search_failure_degrades_to_social_only(monkeypatch):
+    """搜索服务不可用（如额度耗尽）→ 主题空采降级，社媒兜底，整报照发。"""
+    import news_crawler.runner as runner_mod
+    from news_crawler.search_client import SearchBalanceError
+
+    class DeadSearch:
+        successful_calls = 0
+
+        def search(self, query, count=10):
+            raise SearchBalanceError("额度耗尽")
+
+    class FakeSumm:
+        successful_calls = 0
+
+        def summarize_topic(self, label, items):
+            return []
+
+    class FakeSocial:
+        def fetch_all(self):
+            from news_crawler.digest import DigestItem
+            from news_crawler.social_source import PlatformResult
+            return [PlatformResult(platform="zhihu", items=[
+                DigestItem(title="热点一", url="u1", points="", hot="100 万热度")])]
+
+    monkeypatch.setattr(runner_mod, "TOPIC_LABELS", {"ai": "AI"})
+    digest, raw = runner_mod.build_digest(
+        __import__("datetime").date(2026, 10, 26),
+        DeadSearch(), FakeSumm(), count=5, call_cap=200,
+        social_client=FakeSocial())
+    assert raw["ai"] == []  # 搜索主题空采（额度耗尽降级）
+    assert any(s.kind == "social" and s.items for s in digest.sections)  # 社媒兜底照发

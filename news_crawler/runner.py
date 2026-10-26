@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 from .config import APP_DIR
 from .digest import Digest, DigestItem, DigestSection
-from .search_client import DeepSeekSearchClient
+from .search_client import DeepSeekSearchClient, SearchError
 from .social_source import PLATFORM_LABELS
 from .summarizer import Summarizer
 from .topics import TOPIC_LABELS, build_queries
@@ -122,7 +122,12 @@ def build_digest(
         seen_urls: set[str] = set()
         for query in build_queries(topic, day):
             _ensure_cap(search_client.successful_calls + summarizer.successful_calls, call_cap)
-            for item in search_client.search(query, count=count):
+            try:
+                hits = search_client.search(query, count=count)
+            except SearchError as exc:  # 搜索服务不可用（额度/网络）→ 该主题降级为空采，热榜兜底
+                logger.warning("主题 %s 搜索失败，降级跳过（%s）", topic, exc)
+                hits = []
+            for item in hits:
                 url = _norm_url(item.get("url"))
                 if url and url in seen_urls:
                     continue  # 同主题双查询的结果按 URL 合并（ADR-009）
