@@ -8,6 +8,7 @@ import sys
 from datetime import date
 
 from .config import APP_DIR, Config, ConfigError, MissingConfigError, load
+from .feed_source import FeedSearchClient
 from .mailer import MailError, Mailer
 from .pusher import notify
 from .renderer import render_digest_html
@@ -115,7 +116,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"{day} 已成功发送，按幂等语义退出（FR-6）。")
         return EXIT_OK
 
-    if config.search_provider == "deepseek":
+    if config.search_provider == "feed":
+        search_client = FeedSearchClient(dailyhot_base=config.social_api_base)
+    elif config.search_provider == "deepseek":
         search_client = DeepSeekSearchClient(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
     else:
         search_client = BigModelSearchClient(api_key=config.deepseek_api_key)

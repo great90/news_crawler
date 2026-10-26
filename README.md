@@ -2,7 +2,7 @@
 
 每日自动采集 **AI / 游戏 / 游戏引擎 / 新工具** 四主题当日资讯，经 LLM 生成中文要点，合并为一封 HTML 邮件发送到你的邮箱。
 
-搜索源可切换（`SEARCH_PROVIDER`）：默认 [BigModel web_search](https://docs.bigmodel.cn/api-reference/model-api/web-search)（与摘要 LLM 同一 API Key，独立计费需购买资源包）；`deepseek` 为遗留选项（[DeepSeek Search API](https://api-docs.deepseek.com/guides/search)，需 DeepSeek 余额）。
+搜索源可切换（`SEARCH_PROVIDER`）：默认 `feed`（免费订阅源：本地 DailyHotApi 路由 + 量子位/Hacker News 原生 RSS，公众号不采集）；`websearch`（[BigModel web_search](https://docs.bigmodel.cn/api-reference/model-api/web-search)，与摘要 LLM 同一 API Key、独立计费需购资源包）；`deepseek`（[DeepSeek Search API](https://api-docs.deepseek.com/guides/search)，遗留选项）。
 
 ## 快速开始
 
@@ -28,7 +28,7 @@ python -m news_crawler run
 | 配置项 | 说明 |
 |---|---|
 | `DEEPSEEK_API_KEY` | API Key（BigModel 或 DeepSeek，搜索与摘要共用） |
-| `SEARCH_PROVIDER` | 搜索源：`websearch`（默认，BigModel web_search）\| `deepseek`（遗留） |
+| `SEARCH_PROVIDER` | 搜索源：`feed`（默认，免费订阅源：本地 DailyHotApi + 原生 RSS）\| `websearch`（BigModel web_search，独立计费）\| `deepseek`（遗留） |
 | `SMTP_HOST` / `SMTP_PORT` | 发件邮箱 SMTP 服务器（163：`smtp.163.com:465`） |
 | `SMTP_USER` / `SMTP_AUTH_CODE` | 发件邮箱账号与**授权码**（不是登录密码） |
 | `MAIL_TO` | 收件邮箱（可与发件相同） |

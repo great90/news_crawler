@@ -101,8 +101,8 @@ def load(profile: str = "full") -> Config:
 
     if not 1 <= config.topic_count <= 50:
         raise ConfigError("TOPIC_COUNT 取值范围为 1-50（Search API 上限）")
-    if config.search_provider not in ("websearch", "deepseek"):
-        raise ConfigError("SEARCH_PROVIDER 仅支持 websearch | deepseek")
+    if config.search_provider not in ("websearch", "deepseek", "feed"):
+        raise ConfigError("SEARCH_PROVIDER 仅支持 websearch | deepseek | feed")
     if config.daily_call_cap < 1:
         raise ConfigError("DAILY_CALL_CAP 至少为 1")
     if config.social_enabled:

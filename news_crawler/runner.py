@@ -117,22 +117,37 @@ def build_digest(
     """执行采集→去重→摘要全链路，返回（Digest, 各主题原始结果）。"""
     raw_by_topic: dict[str, list[dict]] = {}
     pending: list[dict] = []
+    collect_topic = getattr(search_client, "collect_topic", None)  # feed 模式（REQ-20261027-1）
     for topic, label in TOPIC_LABELS.items():
         collected: list[dict] = []
         seen_urls: set[str] = set()
-        for query in build_queries(topic, day):
+        if collect_topic is not None:
             _ensure_cap(search_client.successful_calls + summarizer.successful_calls, call_cap)
             try:
-                hits = search_client.search(query, count=count)
-            except SearchError as exc:  # 搜索服务不可用（额度/网络）→ 该主题降级为空采，热榜兜底
-                logger.warning("主题 %s 搜索失败，降级跳过（%s）", topic, exc)
+                hits = collect_topic(topic, count)
+            except Exception as exc:  # noqa: BLE001 采集器内部已按源降级，此处兜底
+                logger.warning("主题 %s feed 采集失败，降级跳过（%s）", topic, exc)
                 hits = []
             for item in hits:
                 url = _norm_url(item.get("url"))
                 if url and url in seen_urls:
-                    continue  # 同主题双查询的结果按 URL 合并（ADR-009）
+                    continue
                 seen_urls.add(url)
                 collected.append(item)
+        else:
+            for query in build_queries(topic, day):
+                _ensure_cap(search_client.successful_calls + summarizer.successful_calls, call_cap)
+                try:
+                    hits = search_client.search(query, count=count)
+                except SearchError as exc:  # 搜索服务不可用（额度/网络）→ 该主题降级为空采，热榜兜底
+                    logger.warning("主题 %s 搜索失败，降级跳过（%s）", topic, exc)
+                    hits = []
+                for item in hits:
+                    url = _norm_url(item.get("url"))
+                    if url and url in seen_urls:
+                        continue  # 同主题双查询的结果按 URL 合并（ADR-009）
+                    seen_urls.add(url)
+                    collected.append(item)
         raw_by_topic[topic] = collected
         pending.append({"topic": topic, "label": label, "items": soft_filter(collected, count)})
 
