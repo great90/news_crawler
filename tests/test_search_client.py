@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from news_crawler.search_client import (
+    BigModelSearchClient,
     DeepSeekSearchClient,
     SearchAuthError,
     SearchBalanceError,
@@ -103,6 +104,84 @@ def test_query_length_guard(monkeypatch):
 
 def test_count_guard(monkeypatch):
     client, fake = make_client(monkeypatch, [])
+    with pytest.raises(SearchRequestError, match="count"):
+        client.search("query", count=51)
+    assert fake.calls == []
+
+
+# ===== BigModelSearchClient（REQ-20261026-2 搜索源替换）=====
+
+
+def make_websearch_client(monkeypatch, responses: list[FakeResponse], **kwargs):
+    fake = FakeRequests(responses)
+    monkeypatch.setattr("news_crawler.search_client.requests", fake)
+    sleeps: list[float] = []
+    client = BigModelSearchClient(api_key="sk-test", sleep=sleeps.append, **kwargs)
+    return client, fake, sleeps
+
+
+def test_websearch_success_maps_fields(monkeypatch):
+    client, fake, _ = make_websearch_client(
+        monkeypatch,
+        [FakeResponse(200, {"search_result": [
+            {"title": " 标题 ", "link": "http://a", "content": "内容"},
+            {"title": "t2", "url": "http://b", "snippet": "s2"},
+        ]})],
+    )
+    results = client.search("AI LLM release", count=8)
+    assert results == [
+        {"title": "标题", "url": "http://a", "summary": "内容"},
+        {"title": "t2", "url": "http://b", "summary": "s2"},
+    ]
+    assert client.successful_calls == 1
+    assert fake.calls[0]["url"].endswith("/web_search")
+    assert fake.calls[0]["headers"]["Authorization"] == "Bearer sk-test"
+    payload = fake.calls[0]["json"]
+    assert payload["search_engine"] == "search_std"
+    assert payload["search_query"] == "AI LLM release"
+    assert payload["count"] == 8
+    assert payload["search_recency"] == "oneWeek"  # 通用查询带时间偏好
+    assert "search_domain_filter" not in payload
+
+
+def test_websearch_site_query_uses_domain_filter(monkeypatch):
+    client, fake, _ = make_websearch_client(monkeypatch, [FakeResponse(200, {"search_result": []})])
+    results = client.search("site:mp.weixin.qq.com (AI OR LLM) lang:en", count=8)
+    assert results == []
+    payload = fake.calls[0]["json"]
+    assert payload["search_query"] == "(AI OR LLM) lang:en"  # site: 词剥除
+    assert payload["search_domain_filter"] == ["mp.weixin.qq.com"]
+    assert "search_recency" not in payload  # 域过滤查询不带时间偏好
+
+
+def test_websearch_auth_error_fails_fast(monkeypatch):
+    client, fake, _ = make_websearch_client(monkeypatch, [FakeResponse(401)])
+    with pytest.raises(SearchAuthError):
+        client.search("query")
+    assert len(fake.calls) == 1
+
+
+def test_websearch_arrears_429_fails_fast_without_retry(monkeypatch):
+    # 429/1113 是欠费不是限流，重试无意义（真机实证：2026-10-26 免费额度耗尽后全量 429）
+    body = '{"error":{"code":"1113","message":"余额不足或无可用资源包,请充值。"}}'
+    client, fake, _ = make_websearch_client(monkeypatch, [FakeResponse(429, text=body)])
+    with pytest.raises(SearchBalanceError):
+        client.search("query")
+    assert len(fake.calls) == 1
+
+
+def test_websearch_retryable_then_success_backoff(monkeypatch):
+    client, fake, sleeps = make_websearch_client(
+        monkeypatch, [FakeResponse(429), FakeResponse(200, {"search_result": []})]
+    )
+    assert client.search("query") == []
+    assert len(fake.calls) == 2
+    assert sleeps == [1.0]
+    assert client.successful_calls == 1
+
+
+def test_websearch_count_guard(monkeypatch):
+    client, fake, _ = make_websearch_client(monkeypatch, [])
     with pytest.raises(SearchRequestError, match="count"):
         client.search("query", count=51)
     assert fake.calls == []

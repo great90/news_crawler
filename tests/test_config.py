@@ -12,7 +12,7 @@ def isolated_env(tmp_path, monkeypatch):
     """让 load() 读一个不存在的 .env，用环境变量精确控制测试输入。"""
     monkeypatch.setattr(config_mod, "ENV_PATH", str(tmp_path / ".env"))
     for key in (
-        "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "SMTP_HOST", "SMTP_PORT",
+        "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "SEARCH_PROVIDER", "SMTP_HOST", "SMTP_PORT",
         "SMTP_USER", "SMTP_AUTH_CODE", "MAIL_FROM", "MAIL_TO",
         "SEND_TIME", "TOPIC_COUNT", "DAILY_CALL_CAP",
         "SOCIAL_ENABLED", "SOCIAL_API_BASE", "SOCIAL_PLATFORMS", "SOCIAL_COUNT",
@@ -49,6 +49,29 @@ def test_invalid_topic_count_rejected(monkeypatch):
     monkeypatch.setenv("TOPIC_COUNT", "99")
     with pytest.raises(ConfigError, match="TOPIC_COUNT"):
         load(profile="search")
+
+
+# ===== SEARCH_PROVIDER（REQ-20261026-2 搜索源切换）=====
+
+
+def test_search_provider_defaults_to_websearch(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    config = load(profile="search")
+    assert config.search_provider == "websearch"
+
+
+def test_search_provider_invalid_rejected(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    monkeypatch.setenv("SEARCH_PROVIDER", "google")
+    with pytest.raises(ConfigError, match="SEARCH_PROVIDER"):
+        load(profile="search")
+
+
+def test_search_provider_deepseek_accepted(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    monkeypatch.setenv("SEARCH_PROVIDER", "DeepSeek")  # 大小写不敏感
+    config = load(profile="search")
+    assert config.search_provider == "deepseek"
 
 
 def test_full_profile_requires_smtp(monkeypatch):

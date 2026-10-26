@@ -33,6 +33,7 @@ class Config:
     deepseek_api_key: str
     deepseek_base_url: str = "https://api.deepseek.com"
     llm_model: str = "deepseek-flash"
+    search_provider: str = "websearch"
     smtp_host: str | None = None
     smtp_port: int = 465
     smtp_user: str | None = None
@@ -73,6 +74,7 @@ def load(profile: str = "full") -> Config:
             deepseek_api_key=os.environ["DEEPSEEK_API_KEY"].strip(),
             deepseek_base_url=(get("DEEPSEEK_BASE_URL", "https://api.deepseek.com") or "").rstrip("/"),
             llm_model=(get("LLM_MODEL", "deepseek-flash") or "").strip(),
+            search_provider=(get("SEARCH_PROVIDER", "websearch") or "websearch").strip().lower(),
             smtp_host=get("SMTP_HOST"),
             smtp_port=int(get("SMTP_PORT", "465")),
             smtp_user=get("SMTP_USER"),
@@ -99,6 +101,8 @@ def load(profile: str = "full") -> Config:
 
     if not 1 <= config.topic_count <= 50:
         raise ConfigError("TOPIC_COUNT 取值范围为 1-50（Search API 上限）")
+    if config.search_provider not in ("websearch", "deepseek"):
+        raise ConfigError("SEARCH_PROVIDER 仅支持 websearch | deepseek")
     if config.daily_call_cap < 1:
         raise ConfigError("DAILY_CALL_CAP 至少为 1")
     if config.social_enabled:

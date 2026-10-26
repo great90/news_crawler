@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 from .config import APP_DIR
 from .digest import Digest, DigestItem, DigestSection
-from .search_client import DeepSeekSearchClient, SearchError
+from .search_client import BigModelSearchClient, DeepSeekSearchClient, SearchError
 from .social_source import PLATFORM_LABELS
 from .summarizer import Summarizer
 from .topics import TOPIC_LABELS, build_queries
@@ -108,7 +108,7 @@ def _build_social_sections(social_client) -> list[DigestSection]:
 
 def build_digest(
     day: date,
-    search_client: DeepSeekSearchClient,
+    search_client: DeepSeekSearchClient | BigModelSearchClient,
     summarizer: Summarizer,
     count: int,
     call_cap: int,

@@ -1,6 +1,8 @@
 # news_crawler —— 每日四主题资讯摘要邮件
 
-每日自动调用 [DeepSeek Search API](https://api-docs.deepseek.com/guides/search) 采集 **AI / 游戏 / 游戏引擎 / 新工具** 四主题当日资讯，经 `deepseek-flash` 生成中文要点，合并为一封 HTML 邮件发送到你的邮箱。
+每日自动采集 **AI / 游戏 / 游戏引擎 / 新工具** 四主题当日资讯，经 LLM 生成中文要点，合并为一封 HTML 邮件发送到你的邮箱。
+
+搜索源可切换（`SEARCH_PROVIDER`）：默认 [BigModel web_search](https://docs.bigmodel.cn/api-reference/model-api/web-search)（与摘要 LLM 同一 API Key，独立计费需购买资源包）；`deepseek` 为遗留选项（[DeepSeek Search API](https://api-docs.deepseek.com/guides/search)，需 DeepSeek 余额）。
 
 ## 快速开始
 
@@ -25,7 +27,8 @@ python -m news_crawler run
 
 | 配置项 | 说明 |
 |---|---|
-| `DEEPSEEK_API_KEY` | DeepSeek 平台 API Key（搜索与摘要共用） |
+| `DEEPSEEK_API_KEY` | API Key（BigModel 或 DeepSeek，搜索与摘要共用） |
+| `SEARCH_PROVIDER` | 搜索源：`websearch`（默认，BigModel web_search）\| `deepseek`（遗留） |
 | `SMTP_HOST` / `SMTP_PORT` | 发件邮箱 SMTP 服务器（163：`smtp.163.com:465`） |
 | `SMTP_USER` / `SMTP_AUTH_CODE` | 发件邮箱账号与**授权码**（不是登录密码） |
 | `MAIL_TO` | 收件邮箱（可与发件相同） |

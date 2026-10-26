@@ -12,7 +12,7 @@ from .mailer import MailError, Mailer
 from .pusher import notify
 from .renderer import render_digest_html
 from .runner import CapExceededError, build_digest, write_archive
-from .search_client import DeepSeekSearchClient, SearchError
+from .search_client import BigModelSearchClient, DeepSeekSearchClient, SearchError
 from .social_source import DailyHotApiClient, PLATFORM_LABELS
 from .state import RunState
 from .summarizer import SummarizeError, Summarizer
@@ -115,7 +115,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"{day} 已成功发送，按幂等语义退出（FR-6）。")
         return EXIT_OK
 
-    search_client = DeepSeekSearchClient(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
+    if config.search_provider == "deepseek":
+        search_client = DeepSeekSearchClient(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url)
+    else:
+        search_client = BigModelSearchClient(api_key=config.deepseek_api_key)
     summarizer = Summarizer(api_key=config.deepseek_api_key, base_url=config.deepseek_base_url,
                             model=config.llm_model)
     social_client = None
